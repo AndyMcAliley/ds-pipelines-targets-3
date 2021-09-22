@@ -2,6 +2,9 @@
 .Rhistory
 .RData
 .Ruserdata
+*.DS_Store
 
 # Specific files/dirs to ignore for this pipeline
+_targets/*
 */tmp/*
+*/out/*
