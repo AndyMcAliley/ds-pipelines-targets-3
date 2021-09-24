@@ -2,13 +2,16 @@
 library(targets)
 library(tarchetypes)
 library(tibble)
+suppressPackageStartupMessages(library(dplyr))
 
 options(tidyverse.quiet = TRUE)
-tar_option_set(packages = c("tidyverse", "dataRetrieval", "urbnmapr", "rnaturalearth", "cowplot"))
+tar_option_set(packages = c("tidyverse", "dataRetrieval", "urbnmapr",
+                            "rnaturalearth", "cowplot", "lubridate"))
 
 # Load functions needed by targets below
 source("1_fetch/src/find_oldest_sites.R")
 source("1_fetch/src/get_site_data.R")
+source("2_process/src/tally_site_obs.R")
 source("3_visualize/src/map_sites.R")
 
 # Configuration
@@ -23,10 +26,12 @@ list(
   # Pull site data
   tar_map(
     values = tibble(state_abb = states),
+    # split oldest_active_sites by state
     tar_target(nwis_inventory, filter(oldest_active_sites, state_cd == state_abb)),
-  
-    tar_target(nwis_data, get_site_data(nwis_inventory, state_abb, parameter))
-    # Insert step for tallying data here
+    # download site data
+    tar_target(nwis_data, get_site_data(nwis_inventory, state_abb, parameter)),
+    # tally data
+    tar_target(tally, tally_site_obs(nwis_data)),
     # Insert step for plotting data here
   ),
 
