@@ -12,6 +12,7 @@ tar_option_set(packages = c("tidyverse", "dataRetrieval", "urbnmapr",
 source("1_fetch/src/find_oldest_sites.R")
 source("1_fetch/src/get_site_data.R")
 source("2_process/src/tally_site_obs.R")
+source("2_process/src/summarize_targets.R")
 source("3_visualize/src/map_sites.R")
 source("3_visualize/src/plot_site_data.R")
 source("3_visualize/src/plot_data_coverage.R")
@@ -34,7 +35,9 @@ mapped_by_state_targets <- tar_map(
   # tally data
   tar_target(tally, tally_site_obs(nwis_data)),
   # plot data
-  tar_target(timeseries_png, plot_site_data(state_plot_files, nwis_data, parameter))
+  tar_target(timeseries_png,
+             plot_site_data(state_plot_files, nwis_data, parameter),
+             format = "file")
 )
 
 # Targets
@@ -45,6 +48,13 @@ list(
   mapped_by_state_targets,
   # Combine tallies
   tar_combine(obs_tallies, mapped_by_state_targets[[3]], command = combine_obs_tallies(!!!.x)),
+  # Summarize targets
+  tar_combine(
+    summary_state_timeseries_csv,
+    mapped_by_state_targets[[4]],
+    command = summarize_targets('3_visualize/log/summary_state_timeseries.csv', !!!.x),
+    format="file"
+  ),
   # Plot data coverage
   tar_target(data_coverage_png, 
              plot_data_coverage(obs_tallies, "3_visualize/out/data_coverage.png", parameter),
