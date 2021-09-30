@@ -2,6 +2,7 @@
 library(targets)
 library(tarchetypes)
 library(tibble)
+library(retry)
 suppressPackageStartupMessages(library(dplyr))
 
 options(tidyverse.quiet = TRUE)
@@ -20,8 +21,10 @@ source("3_visualize/src/plot_data_coverage.R")
 source("3_visualize/src/map_timeseries.R")
 
 # Configuration
-# states <- c('WI','MN','MI', 'IL', 'IN')
-states <- c('WI','MN','MI', 'IL', 'IN', 'IA')
+states <- c('AL','AZ','AR','CA','CO','CT','DE','DC','FL','GA','ID','IL','IN','IA',
+            'KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH',
+            'NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX',
+            'UT','VT','VA','WA','WV','WI','WY','AK','HI','GU','PR')
 parameter <- c('00060')
 
 # Pull site data
@@ -33,7 +36,9 @@ mapped_by_state_targets <- tar_map(
   # split oldest_active_sites by state
   tar_target(nwis_inventory, filter(oldest_active_sites, state_cd == state_abb)),
   # download site data
-  tar_target(nwis_data, get_site_data(nwis_inventory, state_abb, parameter)),
+  tar_target(nwis_data, retry(get_site_data(nwis_inventory, state_abb, parameter),
+                              when = "Ugh, the internet data transfer failed!",
+                              max_tries = 30)),
   # tally data
   tar_target(tally, tally_site_obs(nwis_data)),
   # plot data
